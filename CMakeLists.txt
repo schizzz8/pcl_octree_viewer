@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
 project(pcl_octree_viewer)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=gnu++11 -march=native")
+
 find_package(PCL 1.7 REQUIRED)
 
 #set the default path for built executables to the "bin" directory

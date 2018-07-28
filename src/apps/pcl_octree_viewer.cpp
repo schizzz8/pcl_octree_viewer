@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdio.h>
+#include <vector>
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
@@ -32,30 +33,31 @@ typedef pcl::visualization::PCLVisualizer Visualizer;
 
 void computeVoxelCloud(const Octree::Ptr& octree, int depth, PointCloud::Ptr& cloud);
 void castRay(const Eigen::Vector3f& origin, const Eigen::Vector3f& end, const Octree::Ptr& octree, PointCloud::Ptr& cloud);
+//void showCubes(double side,
+//               const PointCloud::Ptr& occ_cloud,
+//               const PointCloud::Ptr& fre_cloud,
+//               const PointCloud::Ptr& unn_cloud,
+//               Visualizer::Ptr& viewer);
 void showCubes(double side,
-               const PointCloud::Ptr& occ_cloud,
-               const PointCloud::Ptr& fre_cloud,
-               const PointCloud::Ptr& unn_cloud,
+               const PointCloud::Ptr& cloud,
                Visualizer::Ptr& viewer);
 
 int main(int argc, char** argv){
 
-  Visualizer::Ptr viewer (new Visualizer ("Octree Viewer"));
-
   PointCloud::Ptr cloud (new PointCloud);
-  PointCloud::Ptr occ_voxel_cloud (new PointCloud);
-  PointCloud::Ptr fre_voxel_cloud (new PointCloud);
-  PointCloud::Ptr unn_voxel_cloud (new PointCloud);
+  //  PointCloud::Ptr occ_voxel_cloud (new PointCloud);
+  //  PointCloud::Ptr fre_voxel_cloud (new PointCloud);
+  //  PointCloud::Ptr unn_voxel_cloud (new PointCloud);
+
+  Visualizer::Ptr viewer (new Visualizer ("Octree Viewer"));
 
   int depth;
   float point_size_=1.0;
-  float resolution = 0.05;
+  float resolution = 0.1;
   float inv_resolution = 1./resolution;
 
   std::cerr << "Loading file " << argv[1] << " ";
   pcl::io::loadPCDFile<Point> (argv[1], *cloud);
-  std::vector<int> nanIndexes;
-  pcl::removeNaNFromPointCloud(*cloud, *cloud, nanIndexes);
   std::cout << "with: " << cloud->points.size() << " points" << std::endl;
 
   Octree::Ptr octree(new Octree(resolution));
@@ -68,27 +70,34 @@ int main(int argc, char** argv){
     depth = 1;
   float s = std::sqrt (octree->getVoxelSquaredSideLen (depth)) / 2.0;
 
-//  computeVoxelCloud(octree,depth,occ_voxel_cloud);
-
   std::cerr << "Octree: " << std::endl;
   std::cerr << ">>Depth: " << depth << std::endl;
   std::cerr << ">>Resolution: " << s*2 << std::endl;
-  std::cerr << ">>Voxels: " << occ_voxel_cloud->size() << std::endl;
+  //  std::cerr << ">>Voxels: " << occ_voxel_cloud->size() << std::endl;
 
   Point min_pt,max_pt;
   pcl::getMinMax3D(*cloud,min_pt,max_pt);
   Eigen::Vector3f min(min_pt.x,min_pt.y,min_pt.z);
   Eigen::Vector3f max(max_pt.x,max_pt.y,max_pt.z);
-
-  std::cerr << ">>Min: " << min.transpose() << std::endl;
-  std::cerr << ">>Max: " << max.transpose() << std::endl;
-
   Eigen::Vector3i dim((int)((max.x()-min.x())*inv_resolution),
                       (int)((max.y()-min.y())*inv_resolution),
                       (int)((max.z()-min.z())*inv_resolution));
+
+  std::cerr << ">>Min: " << min.transpose() << std::endl;
+  std::cerr << ">>Max: " << max.transpose() << std::endl;
   std::cerr << ">>Dim: " << dim.transpose() << std::endl;
+
+  std::cerr << std::endl << "Ray casting..." << std::endl;
+
+  int occ=0,fre=0,unn=0;
   Eigen::Vector3f origin,end;
   Octree::AlignedPointTVector voxels;
+  Point pt;
+
+  std::vector<int> indices;
+  std::vector<int> all_indices;
+  PointCloud::Ptr occ_voxels (new PointCloud);
+  PointCloud::Ptr unn_voxels (new PointCloud);
   for(int r=0; r<dim.z(); ++r)
     for(int c=0; c<dim.y(); ++c){
       origin.x() = min.x();
@@ -98,39 +107,95 @@ int main(int argc, char** argv){
       end.y() = min.y()+c*resolution;
       end.z() = min.z()+r*resolution;
 
+      //      std::cerr << "Start: " << origin.transpose() << " - End: " << end.transpose() << std::endl;
+
       voxels.clear();
       octree->getApproxIntersectedVoxelCentersBySegment(origin, end, voxels, 0.5);
 
-      Point pt;
-      std::vector<int> indices;
+      //      std::cerr << "Traversed voxels: " << voxels.size() << std::endl;
+
       bool hit=false;
       for(int i =0;i<voxels.size();++i){
+
+        //        std::cerr << "#" << i << ": ";
+
         pt.x = voxels[i].x;
         pt.y = voxels[i].y;
         pt.z = voxels[i].z;
-        pt.r = 0;
-        pt.g = 0;
-        pt.b = 1.0;
+        //        std::cerr << pt;
+
         indices.clear();
         bool found=octree->voxelSearch(pt,indices);
         if(!found){
           if(hit){
-            unn_voxel_cloud->points.push_back(pt);
+            //UNKNOWN
+            //            unn_voxel_cloud->points.push_back(pt);
+            pt.r = 0;
+            pt.g = 1.0;
+            pt.b = 0;
+//            octree->addPointToCloud(pt,cloud);
+            unn_voxels->points.push_back(pt);
+            unn++;
+            //            std::cerr << "UNKNOWN...";
+            //            std::cin.get();
+            //            std::cerr << std::endl;
+
             continue;
           }
-          fre_voxel_cloud->points.push_back(pt);
+          //FREE
+          //          fre_voxel_cloud->points.push_back(pt);
+          //          std::cerr << "FREE...";
+          //          std::cin.get();
+          //          std::cerr << std::endl;
+          fre++;
           continue;
         }
         if(indices.size()){
-          occ_voxel_cloud->points.push_back(pt);
+          //OCCUPIED
+          //          occ_voxel_cloud->points.push_back(pt);
+          //          std::cerr << "OCCUPIED...";
+          //          std::cerr << "voxel contains " << indices.size() << " points" << std::endl;
+
+//          for(int idx : indices)
+//            cloud->points.erase(cloud->begin()+idx);
+
+          all_indices.insert(all_indices.end(),indices.begin(),indices.end());
+
+//          octree->deleteVoxelAtPoint(pt);
+          pt.r = 0;
+          pt.g = 0;
+          pt.b = 1.0;
+//          octree->addPointToCloud(pt,cloud);
+          occ_voxels->points.push_back(pt);
+
           if(!hit)
             hit=true;
+
+          //          std::cin.get();
+          //          std::cerr << std::endl;
+          occ++;
           continue;
         }
       }
     }
 
-  showCubes(s,occ_voxel_cloud,fre_voxel_cloud,unn_voxel_cloud,viewer);
+  std::cerr << "Occupied: " << occ << std::endl;
+  std::cerr << "Free    : " << fre << std::endl;
+  std::cerr << "Unknown : " << unn << std::endl;
+
+  for(int idx : all_indices)
+    cloud->points.erase(cloud->begin()+idx);
+
+  for(int i=0; i<occ_voxels->points.size(); ++i){
+     octree->deleteVoxelAtPoint(occ_voxels->points[i]);
+     octree->addPointToCloud(occ_voxels->points[i],cloud);
+  }
+
+  for(int i=0; i<unn_voxels->points.size(); ++i){
+     octree->addPointToCloud(unn_voxels->points[i],cloud);
+  }
+
+  showCubes(s,cloud,viewer);
 
   pcl::visualization::PointCloudColorHandlerRGBField<Point> rgb(cloud);
   viewer->addPointCloud<Point> (cloud, rgb, "cloud");
@@ -179,7 +244,7 @@ void castRay(const Eigen::Vector3f &origin,
 
   Octree::AlignedPointTVector voxels;
   voxels.clear();
-//    octree->getIntersectedVoxelCenters(origin, end, voxels);
+  //    octree->getIntersectedVoxelCenters(origin, end, voxels);
   octree->getApproxIntersectedVoxelCentersBySegment(origin, end, voxels, 0.5);
   Point pt;
   std::vector<int> indices;
@@ -198,18 +263,18 @@ void castRay(const Eigen::Vector3f &origin,
 }
 
 void showCubes(double s,
-               const PointCloud::Ptr& occ_cloud,
-               const PointCloud::Ptr& fre_cloud,
-               const PointCloud::Ptr& unn_cloud,
+               const PointCloud::Ptr& cloud,
                Visualizer::Ptr& viewer){
 
-  if(occ_cloud->points.size()){
-    // process occ cloud
-    vtkSmartPointer<vtkAppendPolyData> occ_append_filter = vtkSmartPointer<vtkAppendPolyData>::New ();
-    for (size_t i = 0; i < occ_cloud->points.size (); i++) {
-      double x = occ_cloud->points[i].x;
-      double y = occ_cloud->points[i].y;
-      double z = occ_cloud->points[i].z;
+  // process occ cloud
+  vtkSmartPointer<vtkAppendPolyData> occ_append_filter = vtkSmartPointer<vtkAppendPolyData>::New ();
+  for (size_t i = 0; i < cloud->points.size (); i++) {
+
+    if(cloud->points[i].b == 1){
+
+      double x = cloud->points[i].x;
+      double y = cloud->points[i].y;
+      double z = cloud->points[i].z;
 
       vtkSmartPointer<vtkCubeSource> occ_cube_source = vtkSmartPointer<vtkCubeSource>::New ();
 
@@ -222,77 +287,37 @@ void showCubes(double s,
       occ_append_filter->AddInputData (occ_cube_source->GetOutput ());
 #endif
     }
-
-    // Remove duplicate points
-    vtkSmartPointer<vtkCleanPolyData> occ_clean_filter = vtkSmartPointer<vtkCleanPolyData>::New ();
-    occ_clean_filter->SetInputConnection (occ_append_filter->GetOutputPort ());
-    occ_clean_filter->Update ();
-
-    //Create a mapper and actor
-    vtkSmartPointer<vtkPolyDataMapper> occ_multi_mapper = vtkSmartPointer<vtkPolyDataMapper>::New ();
-    occ_multi_mapper->SetInputConnection (occ_clean_filter->GetOutputPort ());
-    vtkSmartPointer<vtkActor> occ_multi_actor = vtkSmartPointer<vtkActor>::New ();
-    occ_multi_actor->SetMapper (occ_multi_mapper);
-    occ_multi_actor->GetProperty ()->SetColor (1.0, 0.0, 0.0);
-    occ_multi_actor->GetProperty ()->SetAmbient (1.0);
-    occ_multi_actor->GetProperty ()->SetLineWidth (1);
-    occ_multi_actor->GetProperty ()->EdgeVisibilityOn ();
-    occ_multi_actor->GetProperty ()->SetOpacity (1.0);
-    occ_multi_actor->GetProperty ()->SetRepresentationToWireframe ();
-
-    // Add the actor to the scene
-    viewer->getRenderWindow ()->GetRenderers ()->GetFirstRenderer ()->AddActor (occ_multi_actor);
   }
 
-  if(fre_cloud->points.size()){
-    // process fre cloud
-    vtkSmartPointer<vtkAppendPolyData> fre_append_filter = vtkSmartPointer<vtkAppendPolyData>::New ();
-    for (size_t i = 0; i < fre_cloud->points.size (); i++) {
-      double x = fre_cloud->points[i].x;
-      double y = fre_cloud->points[i].y;
-      double z = fre_cloud->points[i].z;
+  // Remove duplicate points
+  vtkSmartPointer<vtkCleanPolyData> occ_clean_filter = vtkSmartPointer<vtkCleanPolyData>::New ();
+  occ_clean_filter->SetInputConnection (occ_append_filter->GetOutputPort ());
+  occ_clean_filter->Update ();
 
-      vtkSmartPointer<vtkCubeSource> fre_cube_source = vtkSmartPointer<vtkCubeSource>::New ();
+  //Create a mapper and actor
+  vtkSmartPointer<vtkPolyDataMapper> occ_multi_mapper = vtkSmartPointer<vtkPolyDataMapper>::New ();
+  occ_multi_mapper->SetInputConnection (occ_clean_filter->GetOutputPort ());
+  vtkSmartPointer<vtkActor> occ_multi_actor = vtkSmartPointer<vtkActor>::New ();
+  occ_multi_actor->SetMapper (occ_multi_mapper);
+  occ_multi_actor->GetProperty ()->SetColor (0.0, 0.0, 1.0);
+  occ_multi_actor->GetProperty ()->SetAmbient (1.0);
+  occ_multi_actor->GetProperty ()->SetLineWidth (1);
+  occ_multi_actor->GetProperty ()->EdgeVisibilityOn ();
+  occ_multi_actor->GetProperty ()->SetOpacity (1.0);
+  occ_multi_actor->GetProperty ()->SetRepresentationToWireframe ();
 
-      fre_cube_source->SetBounds (x - s, x + s, y - s, y + s, z - s, z + s);
-      fre_cube_source->Update ();
+  // Add the actor to the scene
+  viewer->getRenderWindow ()->GetRenderers ()->GetFirstRenderer ()->AddActor (occ_multi_actor);
 
-#if VTK_MAJOR_VERSION < 6
-      fre_append_filter->AddInput (fre_cube_source->GetOutput ());
-#else
-      fre_append_filter->AddInputData (fre_cube_source->GetOutput ());
-#endif
-    }
+  // process unn cloud
+  vtkSmartPointer<vtkAppendPolyData> unn_append_filter = vtkSmartPointer<vtkAppendPolyData>::New ();
+  for (size_t i = 0; i < cloud->points.size (); i++) {
 
-    // Remove duplicate points
-    vtkSmartPointer<vtkCleanPolyData> fre_clean_filter = vtkSmartPointer<vtkCleanPolyData>::New ();
-    fre_clean_filter->SetInputConnection (fre_append_filter->GetOutputPort ());
-    fre_clean_filter->Update ();
+    if(cloud->points[i].g == 1){
 
-    //Create a mapper and actor
-    vtkSmartPointer<vtkPolyDataMapper> fre_multi_mapper = vtkSmartPointer<vtkPolyDataMapper>::New ();
-    fre_multi_mapper->SetInputConnection (fre_clean_filter->GetOutputPort ());
-    vtkSmartPointer<vtkActor> fre_multi_actor = vtkSmartPointer<vtkActor>::New ();
-    fre_multi_actor->SetMapper (fre_multi_mapper);
-    fre_multi_actor->GetProperty ()->SetColor (0.0, 1.0, 0.0);
-    fre_multi_actor->GetProperty ()->SetAmbient (1.0);
-    fre_multi_actor->GetProperty ()->SetLineWidth (1);
-    fre_multi_actor->GetProperty ()->EdgeVisibilityOn ();
-    fre_multi_actor->GetProperty ()->SetOpacity (1.0);
-    fre_multi_actor->GetProperty ()->SetRepresentationToWireframe ();
-
-    // Add the actor to the scene
-    viewer->getRenderWindow ()->GetRenderers ()->GetFirstRenderer ()->AddActor (fre_multi_actor);
-  }
-
-
-  if(unn_cloud->points.size()){
-    // process unn cloud
-    vtkSmartPointer<vtkAppendPolyData> unn_append_filter = vtkSmartPointer<vtkAppendPolyData>::New ();
-    for (size_t i = 0; i < unn_cloud->points.size (); i++) {
-      double x = unn_cloud->points[i].x;
-      double y = unn_cloud->points[i].y;
-      double z = unn_cloud->points[i].z;
+      double x = cloud->points[i].x;
+      double y = cloud->points[i].y;
+      double z = cloud->points[i].z;
 
       vtkSmartPointer<vtkCubeSource> unn_cube_source = vtkSmartPointer<vtkCubeSource>::New ();
 
@@ -305,27 +330,27 @@ void showCubes(double s,
       unn_append_filter->AddInputData (unn_cube_source->GetOutput ());
 #endif
     }
-
-    // Remove duplicate points
-    vtkSmartPointer<vtkCleanPolyData> unn_clean_filter = vtkSmartPointer<vtkCleanPolyData>::New ();
-    unn_clean_filter->SetInputConnection (unn_append_filter->GetOutputPort ());
-    unn_clean_filter->Update ();
-
-    //Create a mapper and actor
-    vtkSmartPointer<vtkPolyDataMapper> unn_multi_mapper = vtkSmartPointer<vtkPolyDataMapper>::New ();
-    unn_multi_mapper->SetInputConnection (unn_clean_filter->GetOutputPort ());
-    vtkSmartPointer<vtkActor> unn_multi_actor = vtkSmartPointer<vtkActor>::New ();
-    unn_multi_actor->SetMapper (unn_multi_mapper);
-    unn_multi_actor->GetProperty ()->SetColor (1.0, 1.0, 0.0);
-    unn_multi_actor->GetProperty ()->SetAmbient (1.0);
-    unn_multi_actor->GetProperty ()->SetLineWidth (1);
-    unn_multi_actor->GetProperty ()->EdgeVisibilityOn ();
-    unn_multi_actor->GetProperty ()->SetOpacity (1.0);
-    unn_multi_actor->GetProperty ()->SetRepresentationToWireframe ();
-
-    // Add the actor to the scene
-    viewer->getRenderWindow ()->GetRenderers ()->GetFirstRenderer ()->AddActor (unn_multi_actor);
   }
+
+  // Remove duplicate points
+  vtkSmartPointer<vtkCleanPolyData> unn_clean_filter = vtkSmartPointer<vtkCleanPolyData>::New ();
+  unn_clean_filter->SetInputConnection (unn_append_filter->GetOutputPort ());
+  unn_clean_filter->Update ();
+
+  //Create a mapper and actor
+  vtkSmartPointer<vtkPolyDataMapper> unn_multi_mapper = vtkSmartPointer<vtkPolyDataMapper>::New ();
+  unn_multi_mapper->SetInputConnection (unn_clean_filter->GetOutputPort ());
+  vtkSmartPointer<vtkActor> unn_multi_actor = vtkSmartPointer<vtkActor>::New ();
+  unn_multi_actor->SetMapper (unn_multi_mapper);
+  unn_multi_actor->GetProperty ()->SetColor (0.0, 1.0, 0.0);
+  unn_multi_actor->GetProperty ()->SetAmbient (1.0);
+  unn_multi_actor->GetProperty ()->SetLineWidth (1);
+  unn_multi_actor->GetProperty ()->EdgeVisibilityOn ();
+  unn_multi_actor->GetProperty ()->SetOpacity (1.0);
+  unn_multi_actor->GetProperty ()->SetRepresentationToWireframe ();
+
+  // Add the actor to the scene
+  viewer->getRenderWindow ()->GetRenderers ()->GetFirstRenderer ()->AddActor (unn_multi_actor);
 
   // Render and interact
   viewer->getRenderWindow ()->Render ();
