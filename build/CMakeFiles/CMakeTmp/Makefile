@@ -23,6 +23,9 @@ SUFFIXES =
 .SUFFIXES: .hpux_make_needs_suffix_list
 
 
+# Produce verbose output by default.
+VERBOSE = 1
+
 # Suppress display of executed commands.
 $(VERBOSE).SILENT:
 
@@ -48,17 +51,17 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/dede/source/dev/pcl_octree_viewer
+CMAKE_SOURCE_DIR = /home/dede/source/dev/pcl_octree_viewer/build/CMakeFiles/CMakeTmp
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/dede/source/dev/pcl_octree_viewer/build
+CMAKE_BINARY_DIR = /home/dede/source/dev/pcl_octree_viewer/build/CMakeFiles/CMakeTmp
 
 #=============================================================================
 # Targets provided globally by CMake.
 
 # Special rule for the target edit_cache
 edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
+	@echo "No interactive CMake dialog available..."
 	/usr/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
 .PHONY : edit_cache
 
@@ -69,7 +72,7 @@ edit_cache/fast: edit_cache
 
 # Special rule for the target rebuild_cache
 rebuild_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
+	@echo "Running CMake to regenerate build system..."
 	/usr/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
@@ -80,14 +83,14 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/dede/source/dev/pcl_octree_viewer/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/dede/source/dev/pcl_octree_viewer/build/CMakeFiles /home/dede/source/dev/pcl_octree_viewer/build/src/CMakeFiles/progress.marks
-	cd /home/dede/source/dev/pcl_octree_viewer/build && $(MAKE) -f CMakeFiles/Makefile2 src/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/dede/source/dev/pcl_octree_viewer/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/dede/source/dev/pcl_octree_viewer/build/CMakeFiles/CMakeTmp/CMakeFiles /home/dede/source/dev/pcl_octree_viewer/build/CMakeFiles/CMakeTmp/CMakeFiles/progress.marks
+	$(MAKE) -f CMakeFiles/Makefile2 all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/dede/source/dev/pcl_octree_viewer/build/CMakeFiles/CMakeTmp/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/dede/source/dev/pcl_octree_viewer/build && $(MAKE) -f CMakeFiles/Makefile2 src/clean
+	$(MAKE) -f CMakeFiles/Makefile2 clean
 .PHONY : clean
 
 # The main clean target
@@ -97,18 +100,58 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/dede/source/dev/pcl_octree_viewer/build && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
+	$(MAKE) -f CMakeFiles/Makefile2 preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/dede/source/dev/pcl_octree_viewer/build && $(MAKE) -f CMakeFiles/Makefile2 src/preinstall
+	$(MAKE) -f CMakeFiles/Makefile2 preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/dede/source/dev/pcl_octree_viewer/build && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	$(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
+
+#=============================================================================
+# Target rules for targets named cmTC_02841
+
+# Build rule for target.
+cmTC_02841: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 cmTC_02841
+.PHONY : cmTC_02841
+
+# fast build rule for target.
+cmTC_02841/fast:
+	$(MAKE) -f CMakeFiles/cmTC_02841.dir/build.make CMakeFiles/cmTC_02841.dir/build
+.PHONY : cmTC_02841/fast
+
+feature_tests.o: feature_tests.cxx.o
+
+.PHONY : feature_tests.o
+
+# target to build an object file
+feature_tests.cxx.o:
+	$(MAKE) -f CMakeFiles/cmTC_02841.dir/build.make CMakeFiles/cmTC_02841.dir/feature_tests.cxx.o
+.PHONY : feature_tests.cxx.o
+
+feature_tests.i: feature_tests.cxx.i
+
+.PHONY : feature_tests.i
+
+# target to preprocess a source file
+feature_tests.cxx.i:
+	$(MAKE) -f CMakeFiles/cmTC_02841.dir/build.make CMakeFiles/cmTC_02841.dir/feature_tests.cxx.i
+.PHONY : feature_tests.cxx.i
+
+feature_tests.s: feature_tests.cxx.s
+
+.PHONY : feature_tests.s
+
+# target to generate assembly for a file
+feature_tests.cxx.s:
+	$(MAKE) -f CMakeFiles/cmTC_02841.dir/build.make CMakeFiles/cmTC_02841.dir/feature_tests.cxx.s
+.PHONY : feature_tests.cxx.s
 
 # Help Target
 help:
@@ -118,6 +161,10 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... cmTC_02841"
+	@echo "... feature_tests.o"
+	@echo "... feature_tests.i"
+	@echo "... feature_tests.s"
 .PHONY : help
 
 
@@ -129,6 +176,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/dede/source/dev/pcl_octree_viewer/build && $(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	$(CMAKE_COMMAND) -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 
